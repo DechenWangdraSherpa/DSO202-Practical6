@@ -1,0 +1,20 @@
+{
+  "name": "my-podinfo",
+  "namespace": "dso202-helm-p6",
+  "version": 1,
+  "info": {
+    "first_deployed": "2026-11-06T22:13:41.535254608+06:00",
+    "last_deployed": "2026-11-06T22:13:41.535254608+06:00",
+    "description": "Install complete",
+    "status": "deployed",
+    "notes": "1. Get the application URL by running these commands:\n  echo \"Visit http://127.0.0.1:8080 to use your application\"\n  kubectl -n dso202-helm-p6 port-forward deploy/my-podinfo 8080:9898\n"
+  },
+  "apply_method": "ssa",
+  "config": {
+    "replicaCount": 2,
+    "ui": {
+      "message": "Hello from DSO202"
+    }
+  },
+  "manifest": "---\n# Source: podinfo/templates/service.yaml\napiVersion: v1\nkind: Service\nmetadata:\n  name: my-podinfo\n  namespace: dso202-helm-p6\n  labels:\n    helm.sh/chart: podinfo-6.15.0\n    app.kubernetes.io/name: my-podinfo\n    app.kubernetes.io/version: \"6.15.0\"\n    app.kubernetes.io/managed-by: Helm\nspec:\n  type: ClusterIP\n  ports:\n    - port: 9898\n      targetPort: http\n      protocol: TCP\n      name: http\n    - port: 9999\n      targetPort: grpc\n      protocol: TCP\n      name: grpc\n  selector:\n    app.kubernetes.io/name: my-podinfo\n\n---\n# Source: podinfo/templates/deployment.yaml\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: my-podinfo\n  namespace: dso202-helm-p6\n  labels:\n    helm.sh/chart: podinfo-6.15.0\n    app.kubernetes.io/name: my-podinfo\n    app.kubernetes.io/version: \"6.15.0\"\n    app.kubernetes.io/managed-by: Helm\nspec:\n  replicas: 2\n  strategy:\n    type: RollingUpdate\n    rollingUpdate:\n      maxUnavailable: 1\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: my-podinfo\n  template:\n    metadata:\n      labels:\n        app.kubernetes.io/name: my-podinfo\n      annotations:\n        prometheus.io/scrape: \"true\"\n        prometheus.io/port: \"9898\"\n    spec:\n      terminationGracePeriodSeconds: 30\n      containers:\n        - name: podinfo\n          image: \"ghcr.io/stefanprodan/podinfo:6.15.0\"\n          imagePullPolicy: IfNotPresent\n          command:\n            - ./podinfo\n            - --port=9898\n            - --prefix=/\n            - --cert-path=/data/cert\n            - --port-metrics=9797\n            - --grpc-port=9999\n            - --grpc-service-name=podinfo\n            - --level=info\n            - --random-delay=false\n            - --random-error=false\n          env:\n          - name: PODINFO_UI_MESSAGE\n            value: \"Hello from DSO202\"\n          - name: PODINFO_UI_COLOR\n            value: \"#34577c\"\n          ports:\n            - name: http\n              containerPort: 9898\n              protocol: TCP\n            - name: http-metrics\n              containerPort: 9797\n              protocol: TCP\n            - name: grpc\n              containerPort: 9999\n              protocol: TCP\n          livenessProbe:\n            exec:\n              command:\n              - podcli\n              - check\n              - http\n              - localhost:9898/healthz\n            initialDelaySeconds: 1\n            timeoutSeconds: 5\n            failureThreshold: 3\n            successThreshold: 1\n            periodSeconds: 10\n          readinessProbe:\n            exec:\n              command:\n              - podcli\n              - check\n              - http\n              - localhost:9898/readyz\n            initialDelaySeconds: 1\n            timeoutSeconds: 5\n            failureThreshold: 3\n            successThreshold: 1\n            periodSeconds: 10\n          volumeMounts:\n          - name: data\n            mountPath: /data\n          resources:\n            requests:\n              cpu: 1m\n              memory: 16Mi\n      volumes:\n      - name: data\n        emptyDir: {}\n\n"
+}
